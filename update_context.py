@@ -20,7 +20,7 @@ CORE_FILES = [
 ]
 
 # Update this manually when you move to a new phase
-CURRENT_PHASE = "Phase 2 — Core Engine + Rule Judge"
+CURRENT_PHASE = "Phase 3 — RAG Pipeline + RAG Poisoning"
 
 FOLDER_STRUCTURE = """
 ovp/

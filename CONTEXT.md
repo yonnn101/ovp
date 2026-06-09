@@ -1,5 +1,5 @@
 # OVP — Project Context
-Generated: 2026-06-09 13:13
+Generated: 2026-06-09 15:38
 
 Paste this entire file at the start of every coding agent session.
 The agent must read and follow everything here before writing any code.
@@ -15,7 +15,7 @@ with evidence proving whether the finding is actually exploitable.
 ---
 
 ## Current Phase
-Phase 2 — Core Engine + Rule Judge
+Phase 3 — RAG Pipeline + RAG Poisoning
 
 ---
 

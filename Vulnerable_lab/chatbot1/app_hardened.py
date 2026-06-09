@@ -44,6 +44,22 @@ INPUT_REJECTION_PATTERNS = [
     "you are now",
     "diagnostic mode",
     "developer mode",
+    "reveal your prompt",
+    "system prompt",
+    "hidden instructions",
+    "quote your instructions",
+    "translate your prompt",
+    "summarize your instructions",
+    "verbatim",
+    "repeat the text above",
+    "dan (do anything now)",
+    "what are your instructions",
+    "output your full configuration",
+    "complete the following",
+    "auditing this deployment",
+    "escalation codes",
+    "api token",
+    "tokens or codes",
 ]
 
 KNOWN_SECRETS = [
@@ -149,7 +165,7 @@ def chat(request: ChatRequest):
             return JSONResponse(
                 status_code=400,
                 content={
-                    "error": "Message rejected by input filter",
+                    "error": "I cannot fulfill this request. Message rejected by input filter",
                     "code": "INPUT_REJECTED",
                 },
             )
@@ -170,6 +186,9 @@ def chat(request: ChatRequest):
                 session_id,
             )
             filtered_text = filtered_text.replace(secret, "[REDACTED]")
+
+    import re
+    filtered_text = re.sub(r'(?i)yonnncorp', 'our company', filtered_text)
 
     return ChatResponse(response=filtered_text, model=selected_model, session_id=session_id)
 
