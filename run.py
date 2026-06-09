@@ -1,5 +1,8 @@
 """Entrypoint for OVP — AI Exploitability Validation Platform."""
 
+from __future__ import annotations
+
+import argparse
 import asyncio
 from rich.console import Console
 from rich.panel import Panel
@@ -33,17 +36,56 @@ FINDING = Finding(
     ),
 )
 
+RAG_FINDING = Finding(
+    id="FINDING-002",
+    type="rag_injection",
+    target_url="http://localhost:8002",
+    severity="HIGH",
+    description="RAG chatbot may be vulnerable to document poisoning",
+    asset=AssetMetadata(
+        model_family="claude",
+        has_rag=True,
+        has_tools=False,
+        has_memory=False,
+        is_agent=False,
+        known_secrets=[
+            "ACME_SECRET_TOKEN_8x92kZ",
+            "ESCALATE-4471",
+        ],
+        known_system_prompt_phrases=[
+            "internal configuration",
+            "acmecorp",
+        ],
+    ),
+)
+
 
 async def main():
+    parser = argparse.ArgumentParser(description="OVP Execution Entrypoint")
+    parser.add_argument(
+        "--target",
+        choices=["chatbot1", "rag"],
+        default="chatbot1",
+        help="Target asset to run exploitability validation against",
+    )
+    args = parser.parse_args()
+
+    if args.target == "chatbot1":
+        finding = FINDING
+        phase_label = "Phase 2 — Direct Prompt Injection"
+    else:
+        finding = RAG_FINDING
+        phase_label = "Phase 3 — RAG Pipeline + RAG Poisoning"
+
     console.print(
         Panel.fit(
             "[bold cyan]OVP — AI Exploitability Validation Platform[/bold cyan]\n"
-            "Phase 2 — Direct Prompt Injection",
+            f"{phase_label}",
             border_style="cyan",
         )
     )
 
-    orchestrator = AttackOrchestrator(FINDING)
+    orchestrator = AttackOrchestrator(finding)
     await orchestrator.run()
 
 

@@ -88,13 +88,13 @@ class AttackModule(ABC):
 
                 # Output formatting per verdict
                 if verdict.verdict == Verdict.EXPLOITABLE:
-                    symbol, color = "✓", "green"
+                    symbol, color = "[+]", "green"
                 elif verdict.verdict == Verdict.NOT_EXPLOITABLE:
-                    symbol, color = "·", "grey50"
+                    symbol, color = "[-]", "grey50"
                 elif verdict.verdict == Verdict.UNCERTAIN:
-                    symbol, color = "?", "yellow"
+                    symbol, color = "[?]", "yellow"
                 else:
-                    symbol, color = "✗", "red"
+                    symbol, color = "[x]", "red"
 
                 progress.console.print(
                     f"[{color}]{symbol}[/{color}] Payload {payload.id}: {verdict.verdict.value} "

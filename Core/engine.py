@@ -31,7 +31,7 @@ class AttackOrchestrator:
         return {
             "system_prompt_exposure": ["DirectPromptInjection"],
             "secret_leak": ["DirectPromptInjection"],
-            "rag_injection": ["DirectPromptInjection"],
+            "rag_injection": ["DirectPromptInjection","RAGPoisoning"],
             "tool_abuse": ["DirectPromptInjection"],
             "agent_compromise": ["DirectPromptInjection"],
         }
@@ -42,6 +42,10 @@ class AttackOrchestrator:
             "DirectPromptInjection": (
                 "Attacks.direct_prompt_injection",
                 "DirectPromptInjection",
+            ),
+            "RAGPoisoning": (
+                "Attacks.rag_poisoning",
+                "RAGPoisoning",
             ),
         }
         if module_name not in module_map:

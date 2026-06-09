@@ -17,9 +17,17 @@ class AttackPayload:
 	"""Definition of an attack payload sent to a target model."""
 
 	id: str
-	content: str
+	content: str | None
 	description: str
 	category: str
+
+
+@dataclass(slots=True)
+class RAGPayload(AttackPayload):
+	"""Attack payload subclass specifically for RAG targets."""
+
+	trigger_query: str
+	skip_ingest: bool = False
 
 
 @dataclass(slots=True)
