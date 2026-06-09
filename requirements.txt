@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+anthropic
+python-dotenv
+chromadb
+pytest
+pytest-asyncio
+rich
