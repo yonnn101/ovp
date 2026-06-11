@@ -1,5 +1,5 @@
 # OVP — Project Context
-Generated: 2026-06-09 17:55
+Generated: 2026-06-09 17:56
 
 Paste this entire file at the start of every coding agent session.
 The agent must read and follow everything here before writing any code.
@@ -15,7 +15,7 @@ with evidence proving whether the finding is actually exploitable.
 ---
 
 ## Current Phase
-Phase 3 — RAG Pipeline + RAG Poisoning
+Phase 4 — LLM Judge + Tool Abuse Module
 
 ---
 
@@ -280,7 +280,7 @@ class AssessmentReport:
 
 Current task:
 [describe what to build]
-
+Do not use only Anthropic API key
 Do not modify any existing schemas.
 Do not create new files outside the established structure.
 

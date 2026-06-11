@@ -32,7 +32,7 @@ class AttackOrchestrator:
             "system_prompt_exposure": ["DirectPromptInjection"],
             "secret_leak": ["DirectPromptInjection"],
             "rag_injection": ["DirectPromptInjection","RAGPoisoning"],
-            "tool_abuse": ["DirectPromptInjection"],
+            "tool_abuse": ["ToolAbuse"],
             "agent_compromise": ["DirectPromptInjection"],
         }
 
@@ -46,6 +46,10 @@ class AttackOrchestrator:
             "RAGPoisoning": (
                 "Attacks.rag_poisoning",
                 "RAGPoisoning",
+            ),
+            "ToolAbuse": (
+                "Attacks.tool_abuse",
+                "ToolAbuse",
             ),
         }
         if module_name not in module_map:
