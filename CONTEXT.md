@@ -1,5 +1,5 @@
 # OVP — Project Context
-Generated: 2026-06-11 17:37
+Generated: 2026-06-12 16:36
 
 Paste this entire file at the start of every coding agent session.
 The agent must read and follow everything here before writing any code.
@@ -15,7 +15,7 @@ with evidence proving whether the finding is actually exploitable.
 ---
 
 ## Current Phase
-Phase 5 — Attack Graph + Reporting
+Phase 6 — Analytics + CI/CD
 
 ---
 

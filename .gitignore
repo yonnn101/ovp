@@ -220,3 +220,4 @@ __marimo__/
 # OVP generated artifacts
 output/
 dashboard/attack_graph/graph.json
+Analytics/*.db

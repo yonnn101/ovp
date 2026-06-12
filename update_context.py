@@ -20,7 +20,7 @@ CORE_FILES = [
 ]
 
 # Update this manually when you move to a new phase
-CURRENT_PHASE = "Phase 5 — Attack Graph + Reporting"
+CURRENT_PHASE = "Phase 6 — Analytics + CI/CD"
 
 FOLDER_STRUCTURE = """
 ovp/

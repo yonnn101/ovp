@@ -22,7 +22,19 @@ from config import (
 
 
 SUPPORTED_PROVIDERS = ("anthropic", "openai", "azure_openai", "google", "mistral", "github")
-ANTHROPIC_CLIENT = Anthropic(api_key=ANTHROPIC_API_KEY)
+
+_ANTHROPIC_CLIENT: Anthropic | None = None
+
+
+def _get_anthropic_client() -> Anthropic:
+    """Lazily construct the Anthropic client so importing this module does
+    not require ANTHROPIC_API_KEY when another provider is selected."""
+    global _ANTHROPIC_CLIENT
+    if _ANTHROPIC_CLIENT is None:
+        if not ANTHROPIC_API_KEY:
+            _raise_missing_provider_config("anthropic")
+        _ANTHROPIC_CLIENT = Anthropic(api_key=ANTHROPIC_API_KEY)
+    return _ANTHROPIC_CLIENT
 
 
 def _extract_anthropic_text(response: object) -> str:
@@ -96,7 +108,7 @@ def generate_chat_response(
         )
 
     if selected_provider == "anthropic":
-        response = ANTHROPIC_CLIENT.messages.create(
+        response = _get_anthropic_client().messages.create(
             model=selected_model,
             max_tokens=512,
             system=system_prompt,

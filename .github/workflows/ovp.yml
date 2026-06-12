@@ -1,0 +1,113 @@
+name: OVP Security Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest Tests/ -v --ignore=Tests/test_integration.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Run integration tests
+        run: pytest Tests/test_integration.py -v
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            .pytest_cache/
+            output/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: test
+
+    # Run the assessment against every supported LLM provider. Each leg is
+    # independent (fail-fast: false) and only needs its own provider's key —
+    # no hard dependency on ANTHROPIC_API_KEY. The `github` leg uses the
+    # built-in Actions token and works with no extra secrets configured.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - provider: github
+            model: gpt-4o-mini
+          - provider: openai
+            model: gpt-4o-mini
+          - provider: anthropic
+            model: claude-haiku-4-5-20251001
+          - provider: google
+            model: gemini-1.5-flash
+          - provider: mistral
+            model: mistral-small-latest
+
+    name: security-scan (${{ matrix.provider }})
+
+    env:
+      OVP_LLM_PROVIDER: ${{ matrix.provider }}
+      OVP_MODEL: ${{ matrix.model }}
+      # Only the selected provider's key is consumed at request time; the
+      # rest stay empty for legs that don't use them.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start vulnerable chatbot1
+        run: |
+          uvicorn Vulnerable_lab.chatbot1.app:app --port 8000 &
+          sleep 3
+
+      - name: Run OVP against vulnerable target
+        run: python run.py --target chatbot1
+
+      - name: Start hardened chatbot1
+        run: |
+          pkill -f "chatbot1.app" || true
+          uvicorn Vulnerable_lab.chatbot1.app_hardened:app --port 8001 &
+          sleep 3
+
+      - name: Run OVP against hardened target
+        run: python run.py --target hardened
+
+      - name: Upload assessment reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovp-reports-${{ matrix.provider }}
+          path: output/
