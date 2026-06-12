@@ -1,5 +1,5 @@
 # OVP — Project Context
-Generated: 2026-06-09 17:56
+Generated: 2026-06-11 17:37
 
 Paste this entire file at the start of every coding agent session.
 The agent must read and follow everything here before writing any code.
@@ -15,7 +15,7 @@ with evidence proving whether the finding is actually exploitable.
 ---
 
 ## Current Phase
-Phase 4 — LLM Judge + Tool Abuse Module
+Phase 5 — Attack Graph + Reporting
 
 ---
 
@@ -280,7 +280,7 @@ class AssessmentReport:
 
 Current task:
 [describe what to build]
-Do not use only Anthropic API key
+
 Do not modify any existing schemas.
 Do not create new files outside the established structure.
 

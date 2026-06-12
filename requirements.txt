@@ -7,3 +7,5 @@ chromadb
 pytest
 pytest-asyncio
 rich
+markdown
+weasyprint

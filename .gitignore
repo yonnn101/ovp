@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# OVP generated artifacts
+output/
+dashboard/attack_graph/graph.json

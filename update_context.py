@@ -20,7 +20,7 @@ CORE_FILES = [
 ]
 
 # Update this manually when you move to a new phase
-CURRENT_PHASE = "Phase 4 — LLM Judge + Tool Abuse Module"
+CURRENT_PHASE = "Phase 5 — Attack Graph + Reporting"
 
 FOLDER_STRUCTURE = """
 ovp/

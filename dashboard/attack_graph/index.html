@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OVP — Attack Graph</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+  header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0) 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+  }
+  header .subtitle {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  header .verdict-badge {
+    font-weight: 700;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    margin-left: 0.4rem;
+  }
+  #graph { width: 100vw; height: 100vh; display: block; cursor: grab; }
+  #graph:active { cursor: grabbing; }
+  .node rect {
+    stroke: rgba(255,255,255,0.35);
+    stroke-width: 1.5px;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  }
+  .node text {
+    fill: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+  .link { stroke: #64748b; stroke-width: 2px; fill: none; }
+  .legend {
+    position: absolute;
+    bottom: 1rem; left: 1.5rem;
+    background: rgba(30,41,59,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.78rem;
+    z-index: 10;
+  }
+  .legend .row { display: flex; align-items: center; margin: 0.15rem 0; }
+  .legend .swatch {
+    width: 12px; height: 12px; border-radius: 3px; margin-right: 0.5rem;
+  }
+  #tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #020617;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    max-width: 260px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    z-index: 20;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  }
+  #tooltip .tt-type {
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+  }
+  #tooltip .tt-label { white-space: pre-line; margin-top: 0.2rem; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>OVP — Attack Graph</h1>
+    <div class="subtitle" id="subtitle">Loading…</div>
+  </header>
+
+  <svg id="graph"></svg>
+
+  <div class="legend" id="legend"></div>
+  <div id="tooltip"></div>
+
+<script>
+const COLORS = {
+  finding: "#3b82f6",
+  module: "#8b5cf6",
+  hit: "#ef4444",
+  evidence: "#f97316",
+  verdict_exploitable: "#dc2626",
+  verdict_safe: "#16a34a",
+};
+
+const LEGEND = [
+  ["finding", "Finding"],
+  ["module", "Module"],
+  ["hit", "Exploitable Hit"],
+  ["evidence", "Evidence"],
+  ["verdict_exploitable", "Verdict"],
+];
+
+const DEMO_GRAPH = {
+  assessment_id: "OVP-DEMO-00000000",
+  finding_type: "system_prompt_exposure",
+  verdict: "EXPLOITABLE",
+  nodes: [
+    { id: "finding", label: "Finding\nsystem_prompt_exposure", type: "finding" },
+    { id: "module_0", label: "Direct Prompt\nInjection", type: "module" },
+    { id: "hit_0", label: "DPI-002\nExploitable", type: "hit" },
+    { id: "hit_1", label: "DPI-007\nExploitable", type: "hit" },
+    { id: "evidence", label: "Secret Leaked\nACME_TOKEN", type: "evidence" },
+    { id: "verdict", label: "EXPLOITABLE\nHIGH 95%", type: "verdict" },
+  ],
+  edges: [
+    { from: "finding", to: "module_0" },
+    { from: "module_0", to: "hit_0" },
+    { from: "module_0", to: "hit_1" },
+    { from: "hit_0", to: "evidence" },
+    { from: "hit_1", to: "evidence" },
+    { from: "evidence", to: "verdict" },
+  ],
+};
+
+function nodeColor(node, verdict) {
+  if (node.type === "verdict") {
+    return verdict === "NOT_EXPLOITABLE"
+      ? COLORS.verdict_safe
+      : COLORS.verdict_exploitable;
+  }
+  return COLORS[node.type] || "#64748b";
+}
+
+function render(graph) {
+  const verdict = graph.verdict || "EXPLOITABLE";
+
+  // Header
+  const badgeColor = verdict === "NOT_EXPLOITABLE" ? COLORS.verdict_safe : COLORS.verdict_exploitable;
+  d3.select("#subtitle").html(
+    `${graph.assessment_id} ` +
+    `<span class="verdict-badge" style="background:${badgeColor}">${verdict}</span>`
+  );
+
+  // Legend
+  const legend = d3.select("#legend");
+  legend.html("<strong>Node types</strong>");
+  LEGEND.forEach(([key, name]) => {
+    const row = legend.append("div").attr("class", "row");
+    row.append("span").attr("class", "swatch").style("background", COLORS[key]);
+    row.append("span").text(name);
+  });
+
+  const svg = d3.select("#graph");
+  svg.selectAll("*").remove();
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  // Arrow marker
+  svg.append("defs").append("marker")
+    .attr("id", "arrow")
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 22)
+    .attr("refY", 0)
+    .attr("markerWidth", 7)
+    .attr("markerHeight", 7)
+    .attr("orient", "auto")
+    .append("path")
+    .attr("d", "M0,-5L10,0L0,5")
+    .attr("fill", "#64748b");
+
+  const container = svg.append("g");
+
+  // Zoom & pan
+  svg.call(
+    d3.zoom()
+      .scaleExtent([0.3, 3])
+      .on("zoom", (event) => container.attr("transform", event.transform))
+  );
+
+  // Build link objects keyed to node objects
+  const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
+  const links = graph.edges
+    .filter((e) => nodeById.has(e.from) && nodeById.has(e.to))
+    .map((e) => ({ source: e.from, target: e.to }));
+
+  const simulation = d3.forceSimulation(graph.nodes)
+    .force("link", d3.forceLink(links).id((d) => d.id).distance(140))
+    .force("charge", d3.forceManyBody().strength(-650))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide(80));
+
+  const link = container.append("g")
+    .selectAll("path")
+    .data(links)
+    .join("path")
+    .attr("class", "link")
+    .attr("marker-end", "url(#arrow)");
+
+  const node = container.append("g")
+    .selectAll("g")
+    .data(graph.nodes)
+    .join("g")
+    .attr("class", "node")
+    .call(
+      d3.drag()
+        .on("start", dragStart)
+        .on("drag", dragged)
+        .on("end", dragEnd)
+    );
+
+  // Size rects to label content
+  node.each(function (d) {
+    const lines = String(d.label).split("\n");
+    d._lines = lines;
+    const maxLen = Math.max(...lines.map((l) => l.length));
+    d._w = Math.max(110, maxLen * 7.2 + 24);
+    d._h = lines.length * 18 + 16;
+  });
+
+  node.append("rect")
+    .attr("x", (d) => -d._w / 2)
+    .attr("y", (d) => -d._h / 2)
+    .attr("width", (d) => d._w)
+    .attr("height", (d) => d._h)
+    .attr("rx", 12)
+    .attr("ry", 12)
+    .attr("fill", (d) => nodeColor(d, verdict));
+
+  node.each(function (d) {
+    const g = d3.select(this);
+    const lines = d._lines;
+    const startY = -((lines.length - 1) * 9);
+    lines.forEach((line, i) => {
+      g.append("text")
+        .attr("y", startY + i * 18 + 4)
+        .text(line);
+    });
+  });
+
+  // Tooltip
+  const tooltip = d3.select("#tooltip");
+  node
+    .on("mouseover", (event, d) => {
+      tooltip
+        .style("opacity", 1)
+        .html(
+          `<div class="tt-type">${d.type}</div>` +
+          `<div class="tt-label">${d.label}</div>` +
+          `<div class="tt-type" style="margin-top:.3rem">id: ${d.id}</div>`
+        );
+    })
+    .on("mousemove", (event) => {
+      tooltip
+        .style("left", event.pageX + 14 + "px")
+        .style("top", event.pageY + 14 + "px");
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0));
+
+  simulation.on("tick", () => {
+    link.attr("d", (d) =>
+      `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`
+    );
+    node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+  });
+
+  function dragStart(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+  function dragEnd(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+}
+
+fetch("./graph.json")
+  .then((r) => {
+    if (!r.ok) throw new Error("graph.json not found");
+    return r.json();
+  })
+  .then((data) => render(data))
+  .catch(() => {
+    console.warn("Falling back to demo graph (graph.json missing).");
+    render(DEMO_GRAPH);
+  });
+
+window.addEventListener("resize", () => {
+  // Re-fetch is unnecessary; just re-render the last graph if present.
+  // Simplest: reload data path.
+  fetch("./graph.json")
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((data) => render(data))
+    .catch(() => render(DEMO_GRAPH));
+});
+</script>
+</body>
+</html>

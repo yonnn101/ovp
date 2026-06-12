@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
+import shutil
 from rich.console import Console
 from rich.panel import Panel
 from Core.finding import Finding, AssetMetadata
 from Core.engine import AttackOrchestrator
+from Reports.markdown_report import MarkdownReport
+from Reports.html_report import HTMLReport
+from Reports.pdf_report import PDFReport
+from Reports.graph_data import save_graph
 
 console = Console()
 
@@ -106,7 +112,31 @@ async def main():
     )
 
     orchestrator = AttackOrchestrator(finding)
-    await orchestrator.run()
+    report = await orchestrator.run()
+
+    os.makedirs("output", exist_ok=True)
+    base = f"output/{report.assessment_id}"
+
+    MarkdownReport(report).save(f"{base}.md")
+    HTMLReport(report).save(f"{base}.html")
+    PDFReport(report).generate(f"{base}.pdf")
+
+    console.print(
+        f"\n[green]Reports saved to output/{report.assessment_id}.*[/green]"
+    )
+
+    # Export interactive attack-graph data and stage it for the dashboard.
+    graph_path = f"{base}_graph.json"
+    save_graph(report, graph_path)
+
+    dashboard_dir = os.path.join("dashboard", "attack_graph")
+    os.makedirs(dashboard_dir, exist_ok=True)
+    shutil.copy(graph_path, os.path.join(dashboard_dir, "graph.json"))
+
+    console.print(
+        "[green]Attack graph ready — open "
+        "dashboard/attack_graph/index.html[/green]"
+    )
 
 
 if __name__ == "__main__":
